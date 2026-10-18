@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sa-agent-bench"
+name = "gta-benchmark"
 version = "0.1.0"
 description = "GTA Benchmark: measurable game tasks for state-driven AI agents"
 readme = "README.md"

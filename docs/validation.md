@@ -44,6 +44,9 @@ The standard offline suite and CI do not launch GTA or call a model.
 
 ## Limits to account for
 
+- The planned `kill_npc` and `earn_money` replacements are documentation only.
+  Verified kill attribution, fixed-window numeric scoring and the replacement
+  task definitions are not implemented or live-validated; see [task pack](task-pack.md).
 - Only classic GTA SA 1.0 US is supported by the inspected hooks and structures.
 - Nearby entities, loaded road nodes and local probes are bounded; there is no
   global route map or complete world perception.

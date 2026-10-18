@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(SAAgentTelemetry LANGUAGES CXX)
+project(gta-benchmark LANGUAGES CXX)
 
 if(NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR "Build with the existing MSVC compiler and -A Win32.")

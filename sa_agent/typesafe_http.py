@@ -35,7 +35,7 @@ def request_json(endpoint, key, timeout, payload=None, proxy=None):
     settings = [f"url = {json.dumps(endpoint)}",
                 f"header = {json.dumps('Authorization: Bearer ' + key)}",
                 'header = "Accept: application/json"',
-                'user-agent = "sa-agent-bench/0.1"']
+                'user-agent = "gta-benchmark/0.1"']
     if payload is not None:
         body = json.dumps(payload, allow_nan=False, separators=(",", ":"))
         settings.extend(['request = "POST"', 'header = "Content-Type: application/json"',

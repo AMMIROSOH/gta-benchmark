@@ -10,13 +10,22 @@
 
 ## Next: complete the task pack
 
-1. Define repeatable starting fixtures for each sample, including driving,
-   parking and wanted-level scenarios. Keep setup outside scored task time.
-2. Validate each evaluator and policy in real gameplay, retaining failed runs,
+The [planned task contracts](task-pack.md) replace `park_and_exit` with
+`kill_npc` (maximize NPC kills in 120 seconds) and `lose_wanted` with
+`earn_money` (maximize net cash gained in 120 seconds). These are documentation
+plans; the current JSON tasks and runtime retain their existing behavior.
+
+1. Implement the planned numeric scoring contracts, including verified kill
+   attribution, cash accounting and normal completion at the fixed deadline.
+   Extend structured telemetry, controls, schemas, provenance and offline checks
+   as needed; preserve historical task definitions/results.
+2. Define repeatable starting fixtures for driving, combat and money gathering.
+   Keep setup outside scored task time and document starting cash/equipment.
+3. Validate each evaluator and policy in real gameplay, retaining failed runs,
    traces and finalized videos as evidence.
-3. Exercise moving-traffic interception, blocked paths, failed entry and recovery
+4. Exercise moving-traffic interception, blocked paths, failed entry and recovery
    across multiple scenes rather than relying on a single success.
-4. Version task/scenario rules and document which reset modes can stage them.
+5. Version task/scenario rules and document which reset modes can stage them.
 
 ## Then: controlled model comparisons
 
@@ -25,16 +34,18 @@
 2. Add a deterministic selection baseline to quantify shared-controller assistance.
 3. Add batch manifests, trial counts, scenario assignment and explicit retry rules.
 4. Add aggregation grouped by task version/hash, scenario, actual model and
-   controller version. Report success rates, completion-time distributions,
+   controller version. Report success rates and completion-time distributions
+   for goal tasks, kill-count/net-cash distributions for fixed-window tasks,
    API latency and infrastructure failures.
 
 ## Later: broader environments
 
 Additional GTA titles/versions need their own inspected game adapters, telemetry
 contracts, control mappings and task validation. Preserve existing SA result
-semantics while adding environments. Rename filesystem/package/ABI identifiers
-only as a planned compatibility migration; the repository is already branded
-GTA Benchmark while `sa_agent` remains supported.
+semantics while adding environments. The project/repository and distribution
+name is `gta-benchmark`. Keep the existing `sa_agent` import package, native
+`SAAgent` identifiers and installed D: runtime paths compatible; any later
+package/ABI migration needs a separate compatibility plan.
 
 Leaderboard hosting, visual model inputs, save-state management and deterministic
 traffic control are future design decisions, not implemented features.

@@ -6,8 +6,9 @@ evaluated by game-state rules. Every attempt produces a status, task time,
 decision trace and local video evidence.
 
 The current environment is **classic GTA San Andreas 1.0 US on Windows**. The
-first adapter is **TypeSafe Jev**. The Python package remains `sa_agent`, and
-the checkout folder can retain its existing name.
+first adapter is **TypeSafe Jev**. The project, repository and Python distribution
+are named `gta-benchmark`. The Python import package remains `sa_agent` for
+compatibility with the existing runtime and native bridge.
 
 ## What works today
 
@@ -57,18 +58,29 @@ After package installation, `gta-benchmark` and the compatible `sa-bench` entry
 points expose the same CLI. `python -m sa_agent` continues to work. RTK can wrap
 these commands where installed; it is not a runtime dependency.
 
-## Sample tasks
+## Task pack
 
-| Task ID | Starting state | Goal | Deadline | Controller |
+The intended task pack replaces `park_and_exit` with `kill_npc` and
+`lose_wanted` with `earn_money`. These two replacements are documented plans;
+their task definitions, telemetry, evaluators and score output are not implemented.
+
+| Task ID | Starting state | Goal / score | Task time | Availability |
 | --- | --- | --- | --- | --- |
-| `steal_car` | On foot outdoors near a reachable road | Drive an automobile for a 2-second hold | 120 s | Model target selection + local navigation |
-| `walk_to_waypoint` | On foot outside the configured goal | Stay within 4 m for 1 second | 120 s | Primitive actions |
-| `drive_100m` | Driving a working automobile | Travel 100 m in the same car | 120 s | Primitive actions |
-| `park_and_exit` | Driving at least 2 m/s | Stop, exit and remain nearby | 90 s | Primitive actions |
-| `lose_wanted` | At least one wanted star | Zero stars for 3 seconds, alive | 240 s | Primitive actions |
+| `steal_car` | On foot outdoors near a reachable road | Drive an automobile for a 2-second hold | Up to 120 s | Implemented; model target selection + local navigation |
+| `walk_to_waypoint` | On foot outside the configured goal | Stay within 4 m for 1 second | Up to 120 s | Implemented; primitive actions |
+| `drive_100m` | Driving a working automobile | Travel 100 m in the same car | Up to 120 s | Implemented; primitive actions |
+| `kill_npc` | Repeatable scenario with documented health, equipment and NPC availability | Maximize distinct NPC kills attributable to the player | Fixed 120 s | Planned; documentation only |
+| `earn_money` | Repeatable scenario with documented starting cash and equipment | Maximize cash gained: ending cash minus starting cash | Fixed 120 s | Planned; documentation only |
 
-Fresh New Game supplies an on-foot starting state. Driving, parking and wanted
-tasks require manual staging with `--reset none`. The runner does not manufacture
+The planned count and money benchmarks run for the full two minutes without a
+target threshold or early success. Money may come from killing NPCs and collecting
+their dropped cash, or other normal in-game earning methods. See the
+[planned task contracts](docs/task-pack.md) for scoring and timing details.
+
+The current runnable JSON pack still contains the legacy `park_and_exit`
+(90-second limit) and `lose_wanted` (240-second limit) tasks. Fresh New Game
+supplies an on-foot starting state; driving and the legacy parking/wanted tasks
+require manual staging with `--reset none`. The runner does not manufacture
 these scenarios. "Steal a car" is scored as taking an automobile's driver seat;
 vehicle ownership history is not inferred.
 
@@ -80,6 +92,7 @@ vehicle ownership history is not inferred.
 | Find every command and config option | [CLI and configuration](docs/cli.md) |
 | Understand the system and its boundaries | [Architecture](docs/architecture.md) |
 | Add a task or success rule | [Task authoring](docs/adding-tasks.md) |
+| Review the planned two-minute score benchmarks | [Task pack](docs/task-pack.md) |
 | Add a model/provider adapter | [Agent authoring](docs/adding-agents.md) |
 | Interpret outputs and compare runs | [Results and methodology](docs/results.md) |
 | Understand New Game and extra recording | [Episode lifecycle](docs/episode-lifecycle.md) |
@@ -110,7 +123,7 @@ toolchain. See [contributing](CONTRIBUTING.md) and [agent instructions](AGENTS.m
 | `sa_agent/` | Runner, configuration, agent adapters, navigation, evaluators and recording |
 | `src/` | Win32 Plugin-SDK ASI and fixed-width shared-memory protocols |
 | `reader/` | Basic read-only telemetry and optional localhost HTTP endpoint |
-| `tasks/` | Five versioned task definitions |
+| `tasks/` | Five current versioned task definitions; planned replacements are in `docs/task-pack.md` |
 | `configs/` | Public defaults, render profiles and ignored local overrides |
 | `schemas/` | Task and result JSON contracts for tooling |
 | `tests/` | Offline tests and native movement projection check |

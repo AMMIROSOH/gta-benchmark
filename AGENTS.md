@@ -3,6 +3,7 @@
 Read [README.md](README.md), [architecture](docs/architecture.md) and the relevant
 extension guide before changing behavior. `sa_agent` and the native `SAAgent`
 mapping names are intentional compatibility identifiers.
+The project/repository and distribution name is `gta-benchmark`.
 
 ## Scope and runtime
 
@@ -19,6 +20,9 @@ mapping names are intentional compatibility identifiers.
 ## Boundaries
 
 - Models receive structured state. The local recorder's frames do not enter prompts.
+- The planned `kill_npc` and `earn_money` replacements are specified in
+  [docs/task-pack.md](docs/task-pack.md) only. Their implementation is separate
+  work; keep the current JSON tasks and runtime behavior intact for documentation changes.
 - Adapters return decisions; the runner owns controls, task clocks and judgment.
 - `steal_car` uses model target selection plus shared navigation. Keep this
   assistance visible in results and documentation.

@@ -2,6 +2,11 @@
 
 ## Unreleased — 0.1.0 foundation
 
+- Standardized the project/repository and distribution name as `gta-benchmark`,
+  retaining compatible Python imports, CLI aliases and native bridge names.
+- Documented planned replacements of `park_and_exit` with `kill_npc` and
+  `lose_wanted` with `earn_money`: maximize kill count or net cash over a fixed
+  120-second window. Task/runtime implementation remains unchanged.
 - Established GTA Benchmark documentation, MIT licensing and contribution guides.
 - Added classic SA state/navigation/control and host New Game bridge.
 - Added Jev target selection with shared car acquisition and primitive-action samples.

@@ -5,6 +5,7 @@ Start with [setup](setup.md), then [CLI and configuration](cli.md).
 | Area | Documents |
 | --- | --- |
 | Design | [Architecture](architecture.md), [results and methodology](results.md) |
+| Planned task pack | [Two-minute kill-count and money benchmarks](task-pack.md) |
 | Extending the benchmark | [Tasks](adding-tasks.md), [agents](adding-agents.md), [roadmap](roadmap.md) |
 | Game integration | [Bridge contract](bridge.md), [read-only telemetry](telemetry.md) |
 | Episode behavior | [New Game and recording](episode-lifecycle.md), [car acquisition](car-acquisition.md) |

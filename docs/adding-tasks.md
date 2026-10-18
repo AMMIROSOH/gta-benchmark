@@ -4,6 +4,12 @@ A task defines a starting contract, a model instruction, allowed actions, a
 deadline and a game-state success rule. The host decides success. A model's own
 claim of completion never changes the result.
 
+The intended pack includes the planned `kill_npc` and `earn_money` replacements
+described in [task-pack.md](task-pack.md). Those fixed 120-second numeric score
+contracts are not implemented by the JSON schema, evaluator kinds or deadline
+handling below. The existing `park_and_exit` and `wanted_zero` evaluators remain
+available for the legacy runnable tasks.
+
 ## Add a definition
 
 Create a JSON file under `tasks/`, using a new unique ID. A complete example is:

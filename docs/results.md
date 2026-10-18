@@ -91,12 +91,20 @@ time and model decision rate separate.
 
 ## Comparing models
 
+The planned `kill_npc` and `earn_money` tasks use fixed 120-second windows and
+numeric scores: distinct attributable NPC kills and ending cash minus starting
+cash, respectively. Compare score distributions across completed windows and
+report incomplete attempts separately. Their deadline is planned normal
+completion, with no early success threshold. The current result schema and
+runner do not implement these scores; see the [planned task contracts](task-pack.md).
+
 For a comparison, specify the task version/hash, game/bridge versions, source
 revision, scenario preparation, observation/action interface, model versions,
 controller mode/version, timing and recording settings. Use multiple attempts
 per model with the same protocol and retain failed attempts as well as successes.
 
-Report success rate and completion-time distribution together. Completion time
+For the currently implemented goal tasks, report success rate and completion-time
+distribution together. Completion time
 on successes alone omits failures and timeouts; identify that denominator clearly.
 Report preparation/infrastructure/API failures separately from goal failures,
 with the exclusion policy fixed before collecting results. Describe any retries.

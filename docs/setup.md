@@ -2,7 +2,10 @@
 
 Run commands from the repository root. A local runtime uses `D:\SA-Agent` for
 dependencies, downloads, caches, backups and its Python virtual environment.
-Code, configuration, logs and run outputs remain in the checkout.
+Code, configuration, logs and run outputs remain in the `gta-benchmark` checkout.
+The distribution name is `gta-benchmark`; imports and module commands continue
+to use `sa_agent`. Existing `D:\SA-Agent` runtime paths and native binary names
+are retained for compatibility.
 
 ## Prerequisites
 
