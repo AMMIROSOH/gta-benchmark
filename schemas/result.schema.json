@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GTA Benchmark result v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "task_id",
+    "task_version",
+    "agent",
+    "requested_model",
+    "policy_mode",
+    "status",
+    "reason",
+    "elapsed_seconds",
+    "task_status",
+    "task_reason",
+    "artifacts_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "manifest": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "task_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "agent": {
+      "type": "string"
+    },
+    "requested_model": {
+      "type": "string"
+    },
+    "models_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "policy_mode": {
+      "enum": [
+        "primitive_actions",
+        "target_selection_with_road_controller"
+      ]
+    },
+    "status": {
+      "enum": [
+        "success",
+        "failed"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "task_status": {
+      "enum": [
+        "success",
+        "failed"
+      ]
+    },
+    "task_reason": {
+      "type": "string"
+    },
+    "artifacts_status": {
+      "enum": [
+        "finalizing",
+        "complete",
+        "failed"
+      ]
+    },
+    "elapsed_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "started_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "finished_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "video": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "reset": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "final_state": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "task_progress": {
+      "type": "object"
+    },
+    "post_success_recording": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

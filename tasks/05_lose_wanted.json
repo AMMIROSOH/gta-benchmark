@@ -1,0 +1,12 @@
+{
+  "id": "lose_wanted",
+  "version": 1,
+  "title": "Lose the wanted level",
+  "instruction": "Escape the police and reduce the wanted level to zero. Keep it at zero for three seconds while staying alive.",
+  "timeout_seconds": 240,
+  "setup": "Stage the save with at least one wanted star before starting. The runner never adds stars or uses cheats.",
+  "preconditions": {"minimum_wanted_level": 1},
+  "success": {"type": "wanted_zero", "hold_seconds": 3},
+  "fail_on_death": true,
+  "allowed_actions": ["idle", "forward", "backward", "left", "right", "forward_left", "forward_right", "sprint", "jump", "enter_exit", "accelerate", "accelerate_left", "accelerate_right", "brake", "reverse", "steer_left", "steer_right", "handbrake"]
+}

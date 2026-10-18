@@ -1,0 +1,12 @@
+{
+  "id": "drive_100m",
+  "version": 1,
+  "title": "Drive 100 metres",
+  "instruction": "Drive the starting automobile for at least 100 metres without abandoning or destroying it.",
+  "timeout_seconds": 120,
+  "setup": "Start as the driver of a working automobile on a road. This is an independent task, not an automatic continuation of task 1.",
+  "preconditions": {"driving_automobile": true},
+  "success": {"type": "drive_distance", "distance_m": 100, "max_plausible_speed_mps": 100},
+  "fail_on_death": true,
+  "allowed_actions": ["idle", "accelerate", "accelerate_left", "accelerate_right", "brake", "reverse", "steer_left", "steer_right", "handbrake"]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "steal_car",
+  "version": 3,
+  "title": "Steal a car",
+  "instruction": "Commit to a reachable automobile, follow the street or a clear pedestrian route, intercept slow traffic from in front and wait for it to stop if needed, walk around to the actual driver door, press F once, and remain the driver for two seconds. Prefer parked or stopped cars. Ignore bicycles and motorcycles for this task.",
+  "timeout_seconds": 120,
+  "setup": "Start on foot outdoors near a reachable road, using the opening New Game alley or a manually staged free-roam save with --reset none. The agent can leave the alley and look for traffic; no car is spawned.",
+  "preconditions": {"on_foot": true},
+  "success": {"type": "enter_car_as_driver", "hold_seconds": 2},
+  "fail_on_death": true,
+  "allowed_actions": ["idle", "world_walk", "world_run", "world_sprint", "enter_exit"]
+}

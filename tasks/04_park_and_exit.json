@@ -1,0 +1,12 @@
+{
+  "id": "park_and_exit",
+  "version": 1,
+  "title": "Park and exit",
+  "instruction": "Bring the starting car to a stop, hold it below 0.5 metres per second for two seconds, then exit and remain near it on foot for one second.",
+  "timeout_seconds": 90,
+  "setup": "Start driving an automobile at more than 2 metres per second in a place where it is possible to stop safely.",
+  "preconditions": {"driving_automobile": true, "minimum_speed_mps": 2},
+  "success": {"type": "park_and_exit", "stop_speed_mps": 0.5, "stop_hold_seconds": 2, "exit_hold_seconds": 1, "near_car_radius_m": 6},
+  "fail_on_death": true,
+  "allowed_actions": ["idle", "accelerate", "accelerate_left", "accelerate_right", "brake", "reverse", "steer_left", "steer_right", "handbrake", "enter_exit", "forward", "backward"]
+}

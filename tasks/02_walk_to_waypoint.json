@@ -1,0 +1,12 @@
+{
+  "id": "walk_to_waypoint",
+  "version": 1,
+  "title": "Walk to a waypoint",
+  "instruction": "Reach the configured waypoint on foot and stay inside its radius for one second.",
+  "timeout_seconds": 120,
+  "setup": "Start on foot near the waypoint in Los Santos, or edit its coordinates for your save.",
+  "preconditions": {"on_foot": true, "outside_goal": true},
+  "success": {"type": "reach_waypoint", "position": {"x": 2290, "y": -1260, "z": 24}, "radius_m": 4, "vertical_tolerance_m": 5, "hold_seconds": 1},
+  "fail_on_death": true,
+  "allowed_actions": ["idle", "forward", "backward", "left", "right", "forward_left", "forward_right", "sprint", "jump"]
+}

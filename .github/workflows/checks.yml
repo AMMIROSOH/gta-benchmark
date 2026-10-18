@@ -1,0 +1,51 @@
+name: Offline checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.12'
+          - os: windows-latest
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package metadata without capture dependencies
+        run: python -m pip install --no-deps -e .
+      - name: Validate repository
+        run: python tools/check_repo.py
+      - name: Offline tests
+        run: python -m unittest discover -s tests -v
+      - name: Validate public config and task pack
+        run: python -m sa_agent validate --config configs/benchmark.json
+      - name: Check CLI
+        run: gta-benchmark --version
+
+  movement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compile portable movement test
+        run: g++ -std=c++17 -Wall -Wextra -Werror tests/native_movement.cpp -o movement-test
+      - name: Check game movement projection
+        run: ./movement-test

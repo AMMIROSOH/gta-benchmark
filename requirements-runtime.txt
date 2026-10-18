@@ -1,0 +1,6 @@
+# Reproduce the locally recorded Windows baseline with Python 3.12.
+# Bootstrap keeps its runtime, dependency cache and downloads on D:.
+numpy==2.5.4
+dxcam==0.3.0; sys_platform == "win32"
+comtypes==1.4.17; sys_platform == "win32"
+-e .

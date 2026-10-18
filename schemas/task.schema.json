@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GTA Benchmark task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "instruction",
+    "setup",
+    "timeout_seconds",
+    "preconditions",
+    "success",
+    "fail_on_death",
+    "allowed_actions"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "source_file": {
+      "type": "string",
+      "readOnly": true
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "instruction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "setup": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timeout_seconds": {
+      "$ref": "#/$defs/positive"
+    },
+    "fail_on_death": {
+      "type": "boolean"
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "allowed_actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "contains": {
+        "const": "idle"
+      },
+      "items": {
+        "enum": [
+          "idle",
+          "forward",
+          "backward",
+          "left",
+          "right",
+          "sprint",
+          "jump",
+          "enter_exit",
+          "accelerate",
+          "brake",
+          "steer_left",
+          "steer_right",
+          "reverse",
+          "handbrake",
+          "forward_left",
+          "forward_right",
+          "accelerate_left",
+          "accelerate_right",
+          "world_walk",
+          "world_run",
+          "world_sprint"
+        ]
+      }
+    },
+    "preconditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "on_foot": {
+          "type": "boolean"
+        },
+        "driving_automobile": {
+          "type": "boolean"
+        },
+        "nearby_automobile": {
+          "type": "boolean"
+        },
+        "outside_goal": {
+          "type": "boolean"
+        },
+        "minimum_speed_mps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_wanted_level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "not": {
+        "required": [
+          "on_foot",
+          "driving_automobile"
+        ],
+        "properties": {
+          "on_foot": {
+            "const": true
+          },
+          "driving_automobile": {
+            "const": true
+          }
+        }
+      }
+    },
+    "success": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "hold_seconds"
+          ],
+          "properties": {
+            "type": {
+              "const": "enter_car_as_driver"
+            },
+            "hold_seconds": {
+              "$ref": "#/$defs/positive"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "position",
+            "radius_m",
+            "vertical_tolerance_m",
+            "hold_seconds"
+          ],
+          "properties": {
+            "type": {
+              "const": "reach_waypoint"
+            },
+            "position": {
+              "$ref": "#/$defs/position"
+            },
+            "radius_m": {
+              "$ref": "#/$defs/positive"
+            },
+            "vertical_tolerance_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "hold_seconds": {
+              "$ref": "#/$defs/positive"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "distance_m",
+            "max_plausible_speed_mps"
+          ],
+          "properties": {
+            "type": {
+              "const": "drive_distance"
+            },
+            "distance_m": {
+              "$ref": "#/$defs/positive"
+            },
+            "max_plausible_speed_mps": {
+              "$ref": "#/$defs/positive"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "stop_speed_mps",
+            "stop_hold_seconds",
+            "exit_hold_seconds",
+            "near_car_radius_m"
+          ],
+          "properties": {
+            "type": {
+              "const": "park_and_exit"
+            },
+            "stop_speed_mps": {
+              "type": "number",
+              "minimum": 0
+            },
+            "stop_hold_seconds": {
+              "$ref": "#/$defs/positive"
+            },
+            "exit_hold_seconds": {
+              "$ref": "#/$defs/positive"
+            },
+            "near_car_radius_m": {
+              "$ref": "#/$defs/positive"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "hold_seconds"
+          ],
+          "properties": {
+            "type": {
+              "const": "wanted_zero"
+            },
+            "hold_seconds": {
+              "$ref": "#/$defs/positive"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "success": {
+            "properties": {
+              "type": {
+                "const": "enter_car_as_driver"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "allowed_actions": {
+            "contains": {
+              "const": "enter_exit"
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "allowed_actions": {
+            "items": {
+              "not": {
+                "pattern": "^world_"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "preconditions": {
+            "required": [
+              "outside_goal"
+            ],
+            "properties": {
+              "outside_goal": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "success": {
+            "properties": {
+              "type": {
+                "const": "reach_waypoint"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "positive": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": -6000,
+          "maximum": 6000
+        },
+        "y": {
+          "type": "number",
+          "minimum": -6000,
+          "maximum": 6000
+        },
+        "z": {
+          "type": "number",
+          "minimum": -6000,
+          "maximum": 6000
+        }
+      }
+    }
+  }
+}

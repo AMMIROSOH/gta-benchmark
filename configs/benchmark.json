@@ -1,0 +1,58 @@
+{
+  "agent": {
+    "name": "jev",
+    "endpoint": "https://api.typesafe.ai/v1/systemone",
+    "model": "jev-1.14.0",
+    "api_key_env": "TYPESAFE_API_KEY",
+    "proxy": null,
+    "decision_hz": 5,
+    "request_timeout_seconds": 10.0,
+    "max_decision_age_seconds": 2.5,
+    "max_consecutive_errors": 3,
+    "minimum_confidence": 0.0,
+    "history_size": 8
+  },
+  "game": {
+    "width": 1280,
+    "height": 720,
+    "fps_cap": 30,
+    "telemetry_max_age_ms": 750,
+    "connection_grace_seconds": 3,
+    "pause_grace_seconds": 10,
+    "action_duration_ms": 200,
+    "startup_countdown_seconds": 5
+  },
+  "recording": {
+    "post_success_seconds": 15,
+    "fps": 30,
+    "width": 1280,
+    "height": 720,
+    "device_index": 0,
+    "output_index": 0,
+    "ffmpeg": "ffmpeg",
+    "encoder": "libx264",
+    "crf": 20,
+    "preset": "veryfast",
+    "max_backlog_seconds": 2,
+    "audio": false
+  },
+  "reset": {
+    "mode": "new_game",
+    "executable": "D:/Games/GTA San Andreas/gta_sa.exe",
+    "launch_if_missing": true,
+    "install_bridge_if_closed": true,
+    "launch_timeout_seconds": 60,
+    "timeout_seconds": 180,
+    "skip_intro": true,
+    "settle_seconds": 2,
+    "start_position": {
+      "x": 2235,
+      "y": -1265,
+      "z": 24
+    },
+    "start_radius_m": 60,
+    "require_starting_bicycle": true,
+    "bicycle_radius_m": 30
+  },
+  "output_dir": "runs"
+}

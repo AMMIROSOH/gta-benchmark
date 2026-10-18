@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sa-agent-bench"
+version = "0.1.0"
+description = "GTA Benchmark: measurable game tasks for state-driven AI agents"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "GTA Benchmark contributors"}]
+keywords = ["gta", "benchmark", "agents", "evaluation", "san-andreas"]
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.26,<3", "dxcam==0.3.0; sys_platform == 'win32'"]
+
+[project.scripts]
+sa-bench = "sa_agent.cli:main"
+gta-benchmark = "sa_agent.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sa_agent*", "reader*"]
