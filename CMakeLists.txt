@@ -9,7 +9,7 @@ if(NOT EXISTS "${PLUGIN_SDK_DIR}/output/lib/Plugin.lib")
   message(FATAL_ERROR "Build the Plugin-SDK San Andreas Release library first.")
 endif()
 
-add_library(SAAgentTelemetry SHARED src/telemetry.cpp src/agent_bridge.cpp src/navigation.cpp src/lifecycle.cpp src/telemetry.def)
+add_library(SAAgentTelemetry SHARED src/telemetry.cpp src/actors.cpp src/agent_bridge.cpp src/navigation.cpp src/lifecycle.cpp src/telemetry.def)
 set_target_properties(SAAgentTelemetry PROPERTIES
   PREFIX "" SUFFIX ".asi"
   MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -35,4 +35,7 @@ if(BUILD_TESTING)
   add_executable(SAAgentMovementTest tests/native_movement.cpp)
   target_compile_features(SAAgentMovementTest PRIVATE cxx_std_17)
   add_test(NAME world_direction_camera_projection COMMAND SAAgentMovementTest)
+  add_executable(SAAgentKillTest tests/native_kills.cpp)
+  target_compile_features(SAAgentKillTest PRIVATE cxx_std_17)
+  add_test(NAME attributed_kill_lifetimes COMMAND SAAgentKillTest)
 endif()

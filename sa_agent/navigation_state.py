@@ -66,6 +66,7 @@ def read_navigation(process_id):
                     "links": [ref for ref in n.links if ref != 0xFFFFFFFF]}
                     for n in list(value.nodes)[:min(value.node_count, 96)]],
                 "vehicles": [{"reference": g.reference, "openable": bool(g.flags & 1),
+                    "lock_status": (g.flags >> 16) & 255,
                     "door_clear": bool(g.flags & 2), "front_clear": bool(g.flags & 4),
                     "door_busy": bool(g.flags & 8), "driver_door_valid": bool(g.flags & 16),
                     "driver_door": point(g, "door_"), "front_stop": point(g, "front_"),

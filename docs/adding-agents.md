@@ -24,14 +24,15 @@ game controls, resets a session, runs a task evaluator or captures frames.
 | `Decision` field | Meaning |
 | --- | --- |
 | `action` | A permitted action name; car target choices return `idle` |
-| `confidence` | Provider confidence in `[0, 1]` |
-| `probabilities` | Distribution over the offered choices |
+| `confidence` | Provider confidence in `[0, 1]`, or `None` if unavailable |
+| `probabilities` | Distribution over the offered choices, or `None` if unavailable |
 | `model` | Actual provider response model/version when available |
 | `usage` | Provider usage metadata; no credentials or raw headers |
 | `observation_time` | Original host observation timestamp |
 | `latency_seconds` | Measured request/decision duration |
 | `allowed_actions` | Offered option labels; action names or car-choice labels |
 | `plan` | Optional typed execution plan for the shared controller |
+| `parameters` | Explicit direction/duration for the bounded movement interface |
 
 ## Primitive choices
 
@@ -47,9 +48,29 @@ Follow the provider's real response contract instead of fabricating confidence
 or usage when a new provider does not supply them; extend the shared contract
 deliberately if optional metadata is needed.
 
-## Car target choices
+## Agent-directed movement
 
-For `success.type=enter_car_as_driver`, the runner supplies
+Current tasks use `action_interface=agent_actions_v1`. The runner passes the same
+projected structured observation to all adapters, including NPC/pickup facts and
+the currently executing command. Return a `Decision` with exact action parameters
+as specified in [agent actions](agent-actions.md); `plan` must be null. Other
+providers may output continuous unit XY directions and integer durations directly,
+without Jev choice probabilities. The adapter owns all task strategy and recovery.
+
+For historical `action_interface=bounded_movement_v1`, the runner passes the shared
+observation projection to every adapter and executes only explicit short commands.
+Return an allowed `action`, `plan=None` and `parameters` containing an integer
+`duration_ms` in 1–750 plus a finite unit `direction_world_xy` for world movement.
+`idle` and `jump` take only the duration. There is no route/target plan.
+The agent owns navigation and recovery. The Jev adapter discretizes the same
+interface into fixed directions and durations; another provider can supply
+parameters directly. Keep the discretization equal when comparing models.
+See the complete [waypoint observation and action contract](waypoint-navigation.md).
+
+## Historical assisted car target choices
+
+For historical `success.type=enter_car_as_driver` definitions without
+`action_interface=agent_actions_v1`, the runner supplies
 `progress["navigation_controller"]["candidates"]`. Each candidate has an actual
 vehicle pool reference, route cost, speed, occupation and approach strategy.
 Ask the model to select one offered reference or wait, then return `action=idle`
@@ -66,7 +87,8 @@ plan = {
 The host revalidates the reference against current eligible candidates before
 accepting it. The shared controller retains it until acquired, unavailable or
 blocked. It executes movement and entry independently of API latency. A primitive
-key-only adapter needs this additional plan capability to run `steal_car`.
+key-only adapter needs this plan capability for that historical assisted mode.
+Current steal-car v5 rejects such plans and uses the ordinary agent-action contract.
 
 ## Register and configure
 

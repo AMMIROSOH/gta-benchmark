@@ -1,6 +1,7 @@
 """Episode orchestration: independent decision, monitor and recording loops."""
 
 from dataclasses import asdict
+import copy
 from datetime import datetime, timezone
 import json
 import math
@@ -12,12 +13,14 @@ import uuid
 
 from .actions import available_actions
 from .agents import create_agent
-from .game import BridgeUnavailable, ControlBridge, GameClient
+from .game import BridgeUnavailable, ControlBridge, GameClient, kernel
 from .recording import VideoRecorder
 from .tasks import TaskEvaluator, preconditions
 from .windows import GameWindow
 from .navigation import CarAcquisition
 from .provenance import make_manifest
+from . import movement, commands
+from .scoring import fixed_window
 
 
 def utc_now():
@@ -44,7 +47,7 @@ class DecisionWorker:
         self.agent = agent
         self.requests, self.results = queue.Queue(maxsize=1), queue.Queue()
         self.stopping, self.busy = threading.Event(), threading.Event()
-        self.thread = threading.Thread(target=self._loop, name="jev-decisions", daemon=True)
+        self.thread = threading.Thread(target=self._loop, name="agent-decisions", daemon=True)
         self.thread.start()
 
     def _loop(self):
@@ -108,7 +111,7 @@ def record_success_tail(client, window, recorder, config, directory, task_finish
     if not seconds:
         tail["finished_at_utc"] = utc_now()
         return tail
-    print(f"Task succeeded; recording {seconds:g} more seconds with agent controls released.", flush=True)
+    print(f"Task finished; recording {seconds:g} more seconds with agent controls released.", flush=True)
     invalid_since = None
     seen = None
     deadline = task_finish + seconds
@@ -172,8 +175,18 @@ def run_task(task, config, output_root):
     write_json(directory / "task.json", task)
     write_json(directory / "config.json", config)  # API key is only an environment variable.
     worker = recorder = controls = None
-    navigator = CarAcquisition() if task["success"]["type"] == "enter_car_as_driver" else None
-    result["policy_mode"] = "target_selection_with_road_controller" if navigator else "primitive_actions"
+    agent_actions = commands.uses_agent_actions(task)
+    navigator = CarAcquisition() if task["success"]["type"] == "enter_car_as_driver" and not agent_actions else None
+    bounded_movement = movement.uses_bounded_movement(task)
+    result["policy_mode"] = ("agent_actions" if agent_actions else "bounded_movement" if bounded_movement else
+                            "target_selection_with_road_controller" if navigator else "primitive_actions")
+    if bounded_movement or agent_actions:
+        interface = commands if agent_actions else movement
+        result.update(action_interface=interface.INTERFACE, executor_version=interface.EXECUTOR_VERSION,
+                      invalid_commands_dropped=0)
+    if agent_actions:
+        result["native_input_leases"] = 0
+    active_command = None
     task_start = task_finish = None
     state = None
     resetting = False
@@ -199,8 +212,8 @@ def run_task(task, config, output_root):
         time.sleep(config["game"]["startup_countdown_seconds"])
         window.activate()
         state = ready_state(client, window, config["game"])
-        if navigator and not navigation_ready(state, config["game"]):
-            raise RuntimeError("Fresh navigation data is required for the car acquisition controller. Build/install the new ASI and restart GTA.")
+        if (navigator or bounded_movement or agent_actions) and not navigation_ready(state, config["game"]):
+            raise RuntimeError("Fresh navigation data and world-input support are required. Build/install the current ASI and restart GTA.")
         profile = state["world"]
         if not profile["control_ready"]:
             raise RuntimeError("The ASI input hook is unavailable")
@@ -226,6 +239,8 @@ def run_task(task, config, output_root):
             controls = ControlBridge().__enter__()
         worker = DecisionWorker(agent)
         task_start = time.monotonic()
+        if fixed_window(task):
+            evaluator.window_score.begin(kernel.GetTickCount64())
         result["started_at_utc"] = utc_now()
         next_decision = task_start
         invalid_since = paused_since = None
@@ -243,7 +258,22 @@ def run_task(task, config, output_root):
                 now = time.monotonic()
                 elapsed = now - task_start
                 if elapsed >= task["timeout_seconds"]:
-                    result["reason"] = "timeout"
+                    controls.release()
+                    active_command = None
+                    if fixed_window(task) and invalid_since is None and paused_since is None:
+                        # Drain late-published death events using their engine timestamps.
+                        # Cash from a sample after the deadline is explicitly excluded.
+                        final_sample = client.read()
+                        fresh = (final_sample.get("live") and final_sample.get("player") and
+                            final_sample["process_id"] == seed["process_id"] and window.foreground() and
+                            final_sample.get("status") == "playing" and max(final_sample["sample_age_ms"],
+                            (final_sample.get("actors") or {}).get("sample_age_ms", float("inf"))) <= config["game"]["telemetry_max_age_ms"])
+                        failure = evaluator.window_score.update(final_sample) if fresh else "scoring_telemetry_unavailable"
+                        result["status"] = "failed" if failure else "completed"
+                        result["reason"] = failure or "window_completed"
+                        result["task_progress"] = evaluator.window_score.report(completed=not failure)
+                    else:
+                        result["reason"] = "scoring_window_interrupted" if fixed_window(task) else "timeout"
                     break
                 if recorder.error:
                     result["reason"] = "recording_error"
@@ -253,12 +283,16 @@ def run_task(task, config, output_root):
                     valid = (state.get("live") and state.get("player") and window.foreground() and
                              state["process_id"] == seed["process_id"] and
                              max(state["sample_age_ms"], state["world"]["sample_age_ms"]) <= config["game"]["telemetry_max_age_ms"])
-                    if navigator:
+                    if navigator or bounded_movement or agent_actions:
                         valid = valid and navigation_ready(state, config["game"])
+                    if fixed_window(task):
+                        actors = state.get("actors") or {}
+                        valid = valid and actors.get("sample_age_ms", float("inf")) <= config["game"]["telemetry_max_age_ms"]
                 except BridgeUnavailable:
                     valid = False
                 if not valid:
                     controls.release()
+                    active_command = None
                     evaluator.suspend()
                     invalid_since = invalid_since if invalid_since is not None else now
                     if now - invalid_since >= config["game"]["connection_grace_seconds"]:
@@ -272,6 +306,7 @@ def run_task(task, config, output_root):
                     seen_counter = state["sample_count"]
                 if state["status"] == "paused":
                     controls.release()
+                    active_command = None
                     evaluator.suspend()
                     paused_since = paused_since if paused_since is not None else now
                     if now - paused_since >= config["game"]["pause_grace_seconds"]:
@@ -302,6 +337,7 @@ def run_task(task, config, output_root):
                     if error:
                         errors += 1
                         controls.release()
+                        active_command = None
                         actions.write(json.dumps({"elapsed_seconds": elapsed, "error": error}) + "\n")
                         if errors >= config["agent"]["max_consecutive_errors"]:
                             result["reason"], result["agent_error"] = "agent_error", error
@@ -316,26 +352,76 @@ def run_task(task, config, output_root):
                     applied = age <= config["agent"]["max_decision_age_seconds"] and decision.action in permitted
                     entry = {**asdict(decision), "elapsed_seconds": elapsed,
                              "decision_age_seconds": age, "applied": applied}
+                    duration, goal = config["game"]["action_duration_ms"], None
+                    if (bounded_movement or agent_actions) and applied:
+                        try:
+                            if decision.plan is not None:
+                                raise ValueError("Execution plans are not supported by bounded movement")
+                            duration, goal = interface.execution(decision.action, decision.parameters, state)
+                            # The final lease cannot extend beyond the scored deadline.
+                            remaining_ms = int((task_start+task["timeout_seconds"]-time.monotonic())*1000)
+                            if remaining_ms < 1:
+                                applied = False
+                                entry["drop_reason"] = "task_deadline"
+                            else:
+                                duration = min(duration, remaining_ms)
+                        except ValueError as error:
+                            applied = False
+                            entry.update(drop_reason="invalid_command", detail=str(error))
+                            result["invalid_commands_dropped"] += 1
+                    entry["applied"] = applied
                     if navigator:
                         applied = applied and navigator.accept(decision.plan, state, elapsed)
                         entry.update(source="jev_target_selection", applied=applied)
                         if applied:
                             result["accepted_target_selections"] += 1
                     elif applied:
-                        entry["request_id"] = controls.send(decision.action, config["game"]["action_duration_ms"])
-                        sent_requests.add(entry["request_id"])
+                        if bounded_movement or agent_actions:
+                            entry.update(source="agent_action", duration_ms=duration, goal=goal,
+                                         executor_version=interface.EXECUTOR_VERSION,
+                                         execution_origin=dict(state["player"]["position"]),
+                                         execution_sample_count=state["sample_count"])
+                        if agent_actions:
+                            entry["command_id"] = result["decision_count"]
+                            active_command = commands.AuthorizedCommand(decision.action,
+                                decision.parameters, goal, time.monotonic(), duration,
+                                entry["command_id"], state["player"]["in_vehicle"])
+                            # Authorizations never extend beyond the scored deadline.
+                            active_command.deadline = min(active_command.deadline,
+                                task_start + task["timeout_seconds"])
+                        else:
+                            entry["request_id"] = controls.send(decision.action, duration, goal=goal)
+                            sent_requests.add(entry["request_id"])
                         result["applied_actions"] += 1
                         first_action_at = first_action_at or now
                     if not applied:
                         controls.release()
+                        active_command = None
                         if age > config["agent"]["max_decision_age_seconds"]:
                             entry["drop_reason"] = "decision_stale"
                             result["stale_decisions_dropped"] += 1
-                        else:
+                        elif "drop_reason" not in entry:
                             entry["drop_reason"] = "target_wait_or_no_longer_eligible" if navigator else "action_no_longer_allowed"
                     actions.write(json.dumps(entry, allow_nan=False) + "\n")
                 if result["reason"] == "agent_error":
                     break
+                if active_command:
+                    lease_now = time.monotonic()
+                    if lease_now >= active_command.deadline or state["player"]["in_vehicle"] != active_command.in_vehicle:
+                        controls.release()
+                        active_command = None
+                    else:
+                        lease = active_command.lease(lease_now, state["player"]["in_vehicle"])
+                        if lease:
+                            request_id = controls.send(active_command.action, lease, goal=active_command.goal)
+                            sent_requests.add(request_id)
+                            result["native_input_leases"] += 1
+                            actions.write(json.dumps({"source": "authorized_command_lease",
+                                "command_id": active_command.command_id, "request_id": request_id,
+                                "action": active_command.action, "goal": active_command.goal,
+                                "duration_ms": lease, "elapsed_seconds": lease_now-task_start,
+                                "authorization_end_seconds": active_command.deadline-task_start,
+                                "applied": True}, allow_nan=False)+"\n")
                 if navigator and now >= next_control:
                     intent = navigator.tick(state, elapsed)
                     if intent.action not in available_actions(task, state):
@@ -355,7 +441,14 @@ def run_task(task, config, output_root):
                 needs_decision = not navigator or (navigator.target is None and
                     bool(last_progress["navigation_controller"]["candidates"]))
                 if now >= next_decision and not worker.busy.is_set() and needs_decision:
-                    worker.submit((task, state, elapsed, last_progress, now))
+                    agent_state = (commands.observation(state) if agent_actions else
+                                   movement.observation(state) if bounded_movement else state)
+                    if agent_actions:
+                        agent_state["current_command"] = active_command.describe(now) if active_command else None
+                    # Adapters may build/mutate their own prompt data. Their
+                    # copies must not alter the runner's task rules or judgment.
+                    worker.submit((copy.deepcopy(task), copy.deepcopy(agent_state), elapsed,
+                                   copy.deepcopy(last_progress), now))
                     next_decision = now + (2.0 if navigator else 1.0 / config["agent"]["decision_hz"])
                 time.sleep(0.05)
     except KeyboardInterrupt:
@@ -365,6 +458,12 @@ def run_task(task, config, output_root):
         result["error"] = f"{type(error).__name__}: {error}"
     finally:
         task_finish = time.monotonic()
+        if fixed_window(task) and task_start:
+            if result["status"] == "completed":
+                task_finish = task_start + 120
+            elif result["status"] == "failed" and result["reason"] in {"player_died", "player_arrested"}:
+                result["status"] = "incomplete"
+            result.update(evaluator.window_score.report(completed=result["status"] == "completed"))
         result["elapsed_seconds"] = task_finish - task_start if task_start else 0.0
         result["finished_at_utc"] = utc_now()
         result["task_status"], result["task_reason"] = result["status"], result["reason"]
@@ -384,13 +483,13 @@ def run_task(task, config, output_root):
             worker.stop()
         # Save the terminal task verdict before the optional aftermath recording.
         # The task time, final state and verdict are frozen at the success frame.
-        if result["status"] == "success":
+        if result["status"] in {"success", "completed"}:
             result["post_success_recording"]["status"] = "pending"
         try:
             write_json(directory / "result.json", result)
         except OSError as error:
             cleanup_errors.append(f"Result write: {type(error).__name__}: {error}")
-        if recorder and result["status"] == "success" and not cleanup_errors:
+        if recorder and result["status"] in {"success", "completed"} and not cleanup_errors:
             result["post_success_recording"] = record_success_tail(
                 client, window, recorder, config, directory, task_finish, seed["process_id"])
         elif result["post_success_recording"]["status"] == "pending":

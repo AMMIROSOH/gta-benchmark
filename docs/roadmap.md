@@ -5,20 +5,19 @@
 - Supported San Andreas state/control bridge and typed Jev integration.
 - Independent episode timing, result/video artifacts and post-success recording.
 - Host New Game preparation with acknowledged session/readiness checks.
-- Five sample task contracts and two explicit execution modes.
+- Five agent-owned task contracts, interruptible input and historical baseline modes.
+- Engine-attributed kill events, combat pad inputs and fixed-window numeric scores.
 - Offline validation/tests, extension guides and run provenance.
 
-## Next: complete the task pack
+## Next: broaden validation and scenarios
 
-The [planned task contracts](task-pack.md) replace `park_and_exit` with
+The [task contracts](task-pack.md) replace `park_and_exit` with
 `kill_npc` (maximize NPC kills in 120 seconds) and `lose_wanted` with
-`earn_money` (maximize net cash gained in 120 seconds). These are documentation
-plans; the current JSON tasks and runtime retain their existing behavior.
+`earn_money` (maximize net cash gained in 120 seconds). Their runtime contracts
+are implemented; scene coverage and representative model comparisons remain work.
 
-1. Implement the planned numeric scoring contracts, including verified kill
-   attribution, cash accounting and normal completion at the fixed deadline.
-   Extend structured telemetry, controls, schemas, provenance and offline checks
-   as needed; preserve historical task definitions/results.
+1. Exercise positive and negative kill/cash accounting in more real scenes,
+   including indirect damage, victim unloading and sampling/deadline boundaries.
 2. Define repeatable starting fixtures for driving, combat and money gathering.
    Keep setup outside scored task time and document starting cash/equipment.
 3. Validate each evaluator and policy in real gameplay, retaining failed runs,

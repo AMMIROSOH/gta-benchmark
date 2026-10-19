@@ -47,7 +47,7 @@ def main():
         if args.command == "validate":
             from .tasks import load_task
             load_config(args.config)
-            checked = [load_task(str(path)) for path in sorted((ROOT / "tasks").glob("*.json"))]
+            checked = [load_task(str(path)) for path in sorted((ROOT / "tasks").rglob("*.json"))]
             ids = [task["id"] for task in checked]
             if len(ids) != len(set(ids)):
                 raise ValueError("Task IDs must be unique")
@@ -79,7 +79,8 @@ def main():
         if args.command == "results":
             for file in sorted(args.output_dir.glob("*/*/result.json")):
                 result = json.loads(file.read_text(encoding="utf-8"))
-                print(f"{result['task_id']:22} {result['status']:7} {result['elapsed_seconds']:8.2f}s  {result['reason']}  {file.parent}")
+                score = f" score={result['score']} {result['score_unit']}" if "score" in result else ""
+                print(f"{result['task_id']:22} {result['status']:10} {result['elapsed_seconds']:8.2f}s  {result['reason']}{score}  {file.parent}")
             return
         if sys.platform != "win32":
             raise RuntimeError("Game access and task recording require Windows")
@@ -142,15 +143,18 @@ def main():
                 if not math.isfinite(args.timeout_seconds) or args.timeout_seconds <= 0:
                     raise ValueError("timeout-seconds must be finite and positive")
                 task["timeout_seconds"] = args.timeout_seconds
+            from .tasks import validate_task
+            validate_task(task)
             result, directory = run_task(task, config, output_root)
             print(json.dumps({"status": result["status"], "reason": result["reason"],
                               **({"error": result["error"]} if result.get("error") else {}),
                               **({"precondition_failures": result["precondition_failures"]}
                                  if result.get("precondition_failures") else {}),
                               "elapsed_seconds": result["elapsed_seconds"],
+                              **({k: result[k] for k in ("score", "score_unit", "score_complete")} if "score" in result else {}),
                               "result": str(directory / "result.json"),
                               "video": (result.get("video") or {}).get("path")}, indent=2))
-            raise SystemExit(0 if result["status"] == "success" else 1)
+            raise SystemExit(0 if result["status"] in {"success", "completed"} else 1)
     except KeyboardInterrupt:
         raise SystemExit(130)
     except (OSError, ValueError, RuntimeError, KeyError) as error:

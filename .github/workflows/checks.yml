@@ -49,3 +49,7 @@ jobs:
         run: g++ -std=c++17 -Wall -Wextra -Werror tests/native_movement.cpp -o movement-test
       - name: Check game movement projection
         run: ./movement-test
+      - name: Compile portable kill lifetime and ABI test
+        run: g++ -std=c++17 -Wall -Wextra -Werror tests/native_kills.cpp -o kills-test
+      - name: Check attributed kill lifetimes
+        run: ./kills-test

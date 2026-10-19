@@ -16,6 +16,12 @@
     "allowed_actions"
   ],
   "properties": {
+    "action_interface": {
+      "enum": [
+        "bounded_movement_v1",
+        "agent_actions_v1"
+      ]
+    },
     "$schema": {
       "type": "string"
     },
@@ -86,7 +92,16 @@
           "accelerate_right",
           "world_walk",
           "world_run",
-          "world_sprint"
+          "world_sprint",
+          "attack",
+          "aim",
+          "aim_attack",
+          "aim_left",
+          "aim_right",
+          "aim_up",
+          "aim_down",
+          "weapon_next",
+          "weapon_previous"
         ]
       }
     },
@@ -242,6 +257,30 @@
               "$ref": "#/$defs/positive"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "npc_kills"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "net_money"
+            }
+          }
         }
       ]
     }
@@ -269,12 +308,48 @@
         }
       },
       "else": {
+        "if": {
+          "not": {
+            "required": [
+              "action_interface"
+            ]
+          }
+        },
+        "then": {
+          "properties": {
+            "allowed_actions": {
+              "items": {
+                "not": {
+                  "pattern": "^world_"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "action_interface"
+        ],
+        "properties": {
+          "action_interface": {
+            "const": "bounded_movement_v1"
+          }
+        }
+      },
+      "then": {
         "properties": {
           "allowed_actions": {
             "items": {
-              "not": {
-                "pattern": "^world_"
-              }
+              "enum": [
+                "idle",
+                "jump",
+                "world_walk",
+                "world_run",
+                "world_sprint"
+              ]
             }
           }
         }
@@ -303,6 +378,38 @@
                 "const": "reach_waypoint"
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "success": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "npc_kills",
+                  "net_money"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "action_interface"
+        ],
+        "properties": {
+          "timeout_seconds": {
+            "const": 120
+          },
+          "fail_on_death": {
+            "const": true
+          },
+          "action_interface": {
+            "const": "agent_actions_v1"
           }
         }
       }

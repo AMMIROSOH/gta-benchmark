@@ -4,11 +4,12 @@ A task defines a starting contract, a model instruction, allowed actions, a
 deadline and a game-state success rule. The host decides success. A model's own
 claim of completion never changes the result.
 
-The intended pack includes the planned `kill_npc` and `earn_money` replacements
-described in [task-pack.md](task-pack.md). Those fixed 120-second numeric score
-contracts are not implemented by the JSON schema, evaluator kinds or deadline
-handling below. The existing `park_and_exit` and `wanted_zero` evaluators remain
-available for the legacy runnable tasks.
+The current pack includes `kill_npc` and `earn_money`, described in
+[task-pack.md](task-pack.md). Their fixed-window evaluator kinds are `npc_kills`
+and `net_money`, each with only the `type` field, a mandatory 120-second timeout,
+`fail_on_death=true` and `action_interface=agent_actions_v1`. They produce numeric
+scores and never early success. Legacy parking/wanted definitions remain in
+`tasks/legacy/` and can be loaded by ID or explicit path.
 
 ## Add a definition
 
@@ -83,15 +84,23 @@ focus loss, repeated API errors and recording failures.
 
 ## Actions and controllers
 
+Use `action_interface=agent_actions_v1` for new tasks. The agent selects finite
+movement, driving, interaction and combat controls; the host never chooses a
+route or entry strategy. See [the action contract](agent-actions.md) for durations,
+interruption, observations, normal GTA aim assistance and trace attribution.
+The contracts below describe historical modes retained for compatibility.
+
 Action names and descriptions live in `sa_agent/actions.py`. The current player
 mode intersects the task's action set; `idle` must always be allowed. Primitive
 walking is camera-relative and vehicle steering car-relative.
 
-`world_walk`, `world_run` and `world_sprint` currently belong to the car
-acquisition controller, which supplies a bounded XY goal. Other task policies
-cannot request these names without implementing goal-aware execution. The
-validator rejects that unsupported combination. Car acquisition also requires
-`enter_exit` in its action set.
+`world_walk`, `world_run` and `world_sprint` are available through the explicitly
+declared `action_interface=bounded_movement_v1`, with agent-selected unit XY
+directions and durations of 1–750 ms. This interface permits only world movement,
+idle and jump, and supplies local geometry without a chosen route. See
+[waypoint navigation](waypoint-navigation.md). Without that declaration these
+actions retain their existing car-controller meaning. Car acquisition requires
+`enter_exit` in its action set and retains its separate shared controller.
 
 ## Add a new success rule
 

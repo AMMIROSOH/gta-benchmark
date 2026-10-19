@@ -3,6 +3,7 @@
 #include "navigation.h"
 #include "movement.h"
 #include "lifecycle.h"
+#include "actors_protocol.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -77,7 +78,7 @@ void ApplyPad() {
     const auto now = GetTickCount64();
     bool active = !stopped && !lifecycle::Busy() && control_enabled && ReadCommand(request) && request.enabled == 1 &&
         request.owner_pid != 0 && request.issued_at_ms <= now && request.expires_at_ms > now &&
-        request.expires_at_ms - request.issued_at_ms <= max_action_ms && request.action_id <= 20;
+        request.expires_at_ms - request.issued_at_ms <= max_action_ms && request.action_id <= 29;
     if (active) {
         HANDLE owner = OpenProcess(SYNCHRONIZE, FALSE, request.owner_pid);
         active = owner && WaitForSingleObject(owner, 0) == WAIT_TIMEOUT;
@@ -98,7 +99,18 @@ void ApplyPad() {
     pad->Mode = 0; // documented default pad layout; restored when the lease ends
     pad->OldState = was_controlling ? last_pad : CControllerState{};
     CControllerState value{};
+    // Combat and weapon-cycle controls are strictly on foot.
+    if (request.action_id >= 21 && FindPlayerVehicle(0, false)) request.action_id = 0;
     switch (request.action_id) {
+        case 21: value.ButtonCircle = 255; break;
+        case 22: value.RightShoulder1 = 255; break;
+        case 23: value.RightShoulder1 = value.ButtonCircle = 255; break;
+        case 24: value.RightShoulder1 = 255; value.RightStickX = -64; break;
+        case 25: value.RightShoulder1 = 255; value.RightStickX = 64; break;
+        case 26: value.RightShoulder1 = 255; value.RightStickY = -64; break;
+        case 27: value.RightShoulder1 = 255; value.RightStickY = 64; break;
+        case 28: value.RightShoulder2 = 255; break;
+        case 29: value.LeftShoulder2 = 255; break;
         case 1: value.LeftStickY = -128; break;
         case 2: value.LeftStickY = 128; break;
         case 3: value.LeftStickX = -128; break;
@@ -140,9 +152,10 @@ void ApplyPad() {
     }
     // Enter/exit and jump are edge-triggered. Separate requests get a release
     // frame even if the model selects the same button twice in a row.
-    if ((request.action_id == 6 || request.action_id == 7) && request.request_id != last_request &&
-        (last_pad.ButtonTriangle || last_pad.ButtonSquare)) {
+    if ((request.action_id == 6 || request.action_id == 7 || request.action_id == 28 || request.action_id == 29) && request.request_id != last_request &&
+        (last_pad.ButtonTriangle || last_pad.ButtonSquare || last_pad.RightShoulder2 || last_pad.LeftShoulder2)) {
         value.ButtonTriangle = value.ButtonSquare = 0;
+        value.RightShoulder2 = value.LeftShoulder2 = 0;
     } else {
         last_request = request.request_id;
     }
@@ -233,6 +246,7 @@ void Initialize() {
     if (world) std::memset(world, 0, sizeof(*world));
     if (control) std::memset(control, 0, sizeof(*control));
     navigation::Initialize();
+    actors::Initialize();
     lifecycle::Initialize();
     // CPad::UpdatePads is from Plugin-SDK; psSelectDevice is documented by
     // gta-reversed/source/app/platform/win/WinPs.cpp for the same 1.0-US EXE.
@@ -322,6 +336,7 @@ void PublishWorld() {
     MemoryBarrier();
     InterlockedIncrement(&world->sequence);
     navigation::Publish(value);
+    actors::Publish();
 }
 
 void Shutdown() { stopped = true; lifecycle::Shutdown(); }

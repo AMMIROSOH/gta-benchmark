@@ -7,14 +7,15 @@ from typing import Protocol
 @dataclass(frozen=True)
 class Decision:
     action: str
-    confidence: float
-    probabilities: dict
+    confidence: float | None
+    probabilities: dict | None
     model: str
     usage: dict
     observation_time: float
     latency_seconds: float
     allowed_actions: tuple
     plan: dict | None = None
+    parameters: dict | None = None
 
 
 class Agent(Protocol):

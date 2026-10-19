@@ -32,7 +32,8 @@ python -m sa_agent results
 `reset`, `profile` and `validate` accept `--config PATH`. `results` and `reset`
 accept an output directory. See each command's `--help` for its exact arguments.
 
-`run` exits 0 on overall success, 1 on a recorded failed attempt, and 2 on a CLI
+`run` exits 0 on overall success or a completed score window, 1 on a failed or
+incomplete attempt, and 2 on a CLI
 or configuration error. Ctrl+C during a task records a failed cancellation;
 Ctrl+C during aftermath recording preserves the frozen task verdict and ends
 the tail. A preparation-only command interrupted by Ctrl+C exits 130.
@@ -86,7 +87,13 @@ game, SDK and installed Windows SDK live. It is based on `config.example.json`.
 | | `require_starting_bicycle`, `bicycle_radius_m` | Require a BMX within 30 m |
 | root | `output_dir` | `runs` |
 
-The car controller runs on a 10 Hz schedule independently of Jev. It requests
+Current tasks use agent-selected horizons up to 3000 ms, overriding the legacy
+`game.action_duration_ms` for their commands. The next model request overlaps
+execution and can interrupt it. See [agent actions](agent-actions.md).
+`kill_npc` and `earn_money` require exactly 120 seconds and reject shorter
+`--timeout-seconds` overrides. Their CLI output includes score/unit/completion.
+
+The historical car controller runs on a 10 Hz schedule independently of Jev. It requests
 target selection when necessary, at most once every two seconds. Changing
 `decision_hz` does not alter this schedule, video FPS or the task deadline.
 

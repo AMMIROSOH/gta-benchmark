@@ -10,6 +10,7 @@ import time
 from reader.sa_telemetry import kernel, state as telemetry_state
 from .actions import ACTIONS
 from .navigation_state import read_navigation
+from .actor_state import read_actors
 
 WORLD_NAME = r"Local\SAAgent.World.v1"
 CONTROL_NAME = r"Local\SAAgent.Control.v1"
@@ -111,6 +112,7 @@ class GameClient:
             "nearby_vehicles": [],
         }
         result["navigation"] = read_navigation(result["process_id"])
+        result["actors"] = read_actors(result["process_id"])
         if result["vehicle"] is not None:
             result["vehicle"].update(reference=world.player_vehicle_ref,
                                       vehicle_class=world.player_vehicle_class,

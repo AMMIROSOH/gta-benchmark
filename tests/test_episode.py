@@ -28,12 +28,16 @@ class Clock:
 
 def snapshot():
     return {"process_id": 123, "live": True, "status": "playing", "sample_age_ms": 0,
+        "game_time_ms": 100,
         "sample_count": 1, "player": {"position": {"x": 2235, "y": -1265, "z": 24},
             "in_vehicle": False, "interior": 0, "health": 100, "wanted_level": 0, "speed_mps": 0},
         "vehicle": None, "world": {"sample_age_ms": 0, "control_ready": True,
             "render_width": 1280, "render_height": 720, "fps_cap": 30,
             "player_state": 0, "last_applied_request": 0,
-            "nearby_vehicles": [{"model_id": 481, "distance_m": 3}]}}
+            "camera_forward_xy": {"x": 0, "y": 1},
+            "nearby_vehicles": [{"reference": 257, "model_id": 481, "distance_m": 3}]},
+        "navigation": {"world_goals_ready": True, "sample_age_ms": 0,
+                       "vehicles": [], "nodes": [], "rays": []}}
 
 
 class Window:

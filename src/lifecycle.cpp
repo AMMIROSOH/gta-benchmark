@@ -168,6 +168,7 @@ void TickImpl() {
 }
 
 bool Busy() { return current.phase == Loading || current.phase == PreparingIntro; }
+std::uint32_t Generation() { return current.session_generation; }
 
 void Initialize() {
     shared = static_cast<Status*>(Map(kStatusName, sizeof(Status), status_handle));

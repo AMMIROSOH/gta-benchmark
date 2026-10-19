@@ -25,7 +25,7 @@ def main():
     for path in public_json:
         json.loads(path.read_text(encoding="utf-8"))
     load_config(ROOT / "configs/benchmark.json")
-    tasks = [load_task(str(path)) for path in sorted((ROOT / "tasks").glob("*.json"))]
+    tasks = [load_task(str(path)) for path in sorted((ROOT / "tasks").rglob("*.json"))]
     identifiers = [task["id"] for task in tasks]
     if len(identifiers) != len(set(identifiers)):
         raise ValueError("Task IDs must be unique")

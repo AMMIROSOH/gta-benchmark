@@ -1,0 +1,13 @@
+{
+  "id": "earn_money",
+  "version": 1,
+  "title": "Maximize net cash gained in two minutes",
+  "instruction": "Maximize your ending cash minus starting cash through ordinary gameplay during 120 seconds. You choose the method, including combat and collecting dropped cash. Uncollected pickups earn no credit; spending and cash losses reduce the score, which can be negative. No score threshold ends the window early. Death or arrest makes the attempt incomplete.",
+  "setup": "Start as a living on-foot player outdoors. New Game uses the opening alley and normal starting equipment and cash; no cash, weapons or NPCs are granted. Record location, health, armour, inventory, cash and wanted level from initial_state.json. Compare the same preparation; nearby traffic, NPCs and pickups are stochastic.",
+  "timeout_seconds": 120,
+  "action_interface": "agent_actions_v1",
+  "preconditions": {"on_foot": true},
+  "success": {"type": "net_money"},
+  "fail_on_death": true,
+  "allowed_actions": ["idle", "world_walk", "world_run", "world_sprint", "jump", "enter_exit", "attack", "aim", "aim_attack", "aim_left", "aim_right", "aim_up", "aim_down", "weapon_next", "weapon_previous", "accelerate", "accelerate_left", "accelerate_right", "brake", "reverse", "steer_left", "steer_right", "handbrake"]
+}

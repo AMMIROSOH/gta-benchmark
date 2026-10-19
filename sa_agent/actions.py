@@ -31,10 +31,21 @@ ACTIONS = {
     "world_walk": Action(18, "Walk toward a bounded world-coordinate waypoint."),
     "world_run": Action(19, "Run toward a bounded world-coordinate waypoint."),
     "world_sprint": Action(20, "Sprint toward a bounded world-coordinate waypoint."),
+    "attack": Action(21, "Hold the normal fire/melee button using the equipped weapon."),
+    "aim": Action(22, "Hold normal game targeting; game aim assistance may apply."),
+    "aim_attack": Action(23, "Hold normal targeting and fire/melee together."),
+    "aim_left": Action(24, "Hold targeting and move the right stick left at half strength."),
+    "aim_right": Action(25, "Hold targeting and move the right stick right at half strength."),
+    "aim_up": Action(26, "Hold targeting and move the right stick up at half strength."),
+    "aim_down": Action(27, "Hold targeting and move the right stick down at half strength."),
+    "weapon_next": Action(28, "Cycle to the next available weapon once."),
+    "weapon_previous": Action(29, "Cycle to the previous available weapon once."),
 }
 
 ON_FOOT = {"idle", "forward", "backward", "left", "right", "forward_left", "forward_right",
-           "sprint", "jump", "enter_exit", "world_walk", "world_run", "world_sprint"}
+           "sprint", "jump", "enter_exit", "world_walk", "world_run", "world_sprint",
+           "attack", "aim", "aim_attack", "aim_left", "aim_right", "aim_up", "aim_down",
+           "weapon_next", "weapon_previous"}
 IN_VEHICLE = {"idle", "enter_exit", "accelerate", "brake", "reverse", "steer_left",
               "steer_right", "handbrake", "accelerate_left", "accelerate_right"}
 

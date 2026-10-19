@@ -1,19 +1,19 @@
-# Planned task pack
+# Task pack and fixed-window scoring
 
-GTA Benchmark (`gta-benchmark`) will replace `park_and_exit` with `kill_npc`
+GTA Benchmark (`gta-benchmark`) replaces `park_and_exit` with `kill_npc`
 and `lose_wanted` with `earn_money`. `steal_car`, `walk_to_waypoint` and
 `drive_100m` retain their existing goals.
 
-This document specifies future behavior only. The runnable JSON definitions,
-schemas, bridge, actions, runner and result format still implement the current
-tasks. Neither replacement can be run or scored yet.
+The five current JSON definitions use [agent-owned actions](agent-actions.md).
+The old parking/wanted tasks remain loadable from `tasks/legacy/`. Their results
+and the assisted steal-car v3 baseline retain their original meaning.
 
 ## Shared two-minute scoring window
 
 Both new tasks measure how much an agent achieves in exactly **120 seconds**.
 A completed window produces a numeric score; reaching a particular count or
 cash amount never ends the task early. Expiry is normal completion for these
-planned benchmarks, whereas the current runner treats task timeouts as failure.
+score benchmarks. Goal-task timeouts still represent failure.
 
 Preparation, scenario staging and recorder startup finish before the task clock
 starts. Model latency and temporary pauses consume the same wall-time budget
@@ -45,9 +45,18 @@ Replaces `park_and_exit` in the intended task pack.
   identity, including events whose victims later leave the nearby entity set.
   Model claims and local video frames are not scoring inputs.
 
-The current bridge and evaluators do not provide this verified kill-count
-contract. Future implementation needs suitable structured telemetry, bounded
-combat controls, an evaluator and a numeric result contract.
+The native bridge observes `CEventHandler::RegisterKill` at SA 1.0-US address
+`0x4B9340`, preserving the original game call. It accepts the player ped or the
+player's current vehicle as the source, excludes the player as victim, and
+deduplicates a victim lifetime by pool slot/generation. This is an engine death
+registration, rather than an inference from damage or disappearance.
+Victim deduplication resets on a new game-session generation, because New Game
+can reuse the same pool references. Event IDs remain monotonic for the process.
+The ABI retains 128 events with monotonic event IDs and Windows tick timestamps.
+The scorer ignores pre-window and post-window events and fails explicitly if
+event evidence is lost or the counter resets. Nearby NPC observations are
+independent of this event ring. See the
+[inspected engine routine](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Events/EventHandler.cpp).
 
 ## `earn_money`: maximize cash gained
 
@@ -66,16 +75,21 @@ Replaces `lose_wanted` in the intended task pack.
 - **Integrity:** Cheats, debug/host cash grants and changes to the starting
   balance during an attempt are outside the scoring contract.
 
-The existing state includes player cash, but the runner does not implement this
-fixed-window money score. Future implementation needs start/end accounting,
-numeric results and validation of the earning actions it exposes.
+The scorer records starting cash and the latest sampled balance strictly before
+the deadline. Telemetry samples at 10 Hz: the endpoint balance has up to one
+sampling interval of temporal quantization, disclosed as `cash_sample_tick_ms`.
+A sample at or after the deadline cannot introduce a late payout. Starting and
+ending balances are retained with the net integer score.
 
-## Future implementation and reporting
+## Completion and reporting
 
-Use new task IDs and versions for these distinct objectives; preserve the old
-task definitions and results as historical evidence when implementing the
-replacement. Extend task/result schemas, runner deadline handling, telemetry
-and offline checks together before advertising either task as supported.
+`status=completed`, `reason=window_completed`, `score_complete=true` and
+`elapsed_seconds=120` denote a completed scored window. There is no early-success
+threshold. Death/arrest produce `incomplete` with a partial score and actual
+elapsed time. Setup, capture, API and telemetry failures retain concrete failure
+reasons and `score_complete=false` when scoring started. Artifact failures can
+change overall status while preserving the frozen `task_status` and score.
+The CLI rejects shortened timeout overrides for these two tasks.
 
 Models continue to receive structured state. Local recording remains evidence
 for review and never enters prompts. Adapters choose actions; the runner owns

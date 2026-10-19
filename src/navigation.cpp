@@ -158,6 +158,7 @@ void Publish(const WorldSnapshot& world) {
             item.rear_extent = col->m_boundBox.m_vecMin.y;
         }
         CVector door = pos;
+        item.flags |= (static_cast<unsigned>(vehicle->m_eDoorLock) & 0xffu) << 16;
         if (vehicle->m_nVehicleSubClass == 0) {
             CCarEnterExit::GetPositionToOpenCarDoor(&door, vehicle, 10); // CAR_DOOR_LF: driver
             item.flags |= 16;

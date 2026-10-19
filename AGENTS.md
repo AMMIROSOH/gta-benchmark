@@ -20,12 +20,14 @@ The project/repository and distribution name is `gta-benchmark`.
 ## Boundaries
 
 - Models receive structured state. The local recorder's frames do not enter prompts.
-- The planned `kill_npc` and `earn_money` replacements are specified in
-  [docs/task-pack.md](docs/task-pack.md) only. Their implementation is separate
-  work; keep the current JSON tasks and runtime behavior intact for documentation changes.
+- Fixed-window `kill_npc` and `earn_money` scoring is specified in
+  [docs/task-pack.md](docs/task-pack.md). Preserve full 120-second windows,
+  verified event attribution, net cash accounting and incomplete-attempt labels.
 - Adapters return decisions; the runner owns controls, task clocks and judgment.
-- `steal_car` uses model target selection plus shared navigation. Keep this
-  assistance visible in results and documentation.
+- Current tasks use `agent_actions_v1`: agents own routes, entry, combat and
+  recovery. Keep the historical assisted car controller explicitly labeled;
+  never silently enable it for current tasks. Lease renewal may only execute
+  the frozen command until its agent-authorized deadline.
 - Reset preparation and aftermath recording never add to scored task time.
 - Native layouts use fixed-width fields and seqlocks; update both languages and
   docs together. Preserve process ownership, bounded inputs and expiry checks.

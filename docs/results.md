@@ -29,7 +29,7 @@ New results use [schema version 1](../schemas/result.schema.json).
 
 | Field | Interpretation |
 | --- | --- |
-| `status`, `reason` | Overall attempt outcome: `success` / `failed` and concrete reason |
+| `status`, `reason` | `success`, `completed`, `incomplete` or `failed`, and concrete reason |
 | `task_status`, `task_reason` | Frozen task verdict before recording/cleanup errors |
 | `task_id`, `task_version` | Evaluated definition and scoring version |
 | `elapsed_seconds` | Monotonic task time; excludes preparation, recording startup, aftermath and finalization |
@@ -37,7 +37,9 @@ New results use [schema version 1](../schemas/result.schema.json).
 | `artifacts_status` | `finalizing`, `complete` or `failed` |
 | `artifacts_finished_at_utc` | End of video finalization and cleanup |
 | `agent`, `requested_model`, `models_used` | Adapter, requested model and response model versions seen |
-| `policy_mode` | `primitive_actions` or `target_selection_with_road_controller` |
+| `policy_mode` | Current `agent_actions`; historical `primitive_actions`, `bounded_movement`, `target_selection_with_road_controller` |
+| `action_interface`, `executor_version` | Explicit bounded movement contract and mechanical executor version, when used |
+| `invalid_commands_dropped` | Bounded commands rejected for malformed parameters or unsupported plans |
 | `decision_count`, `observed_decision_hz` | Completed decisions and rate during task time |
 | `navigation_control_ticks`, `observed_navigation_control_hz` | Shared controller work and actual rate |
 | `stale_decisions_dropped` | Responses rejected for age |
@@ -65,6 +67,11 @@ versions, and game/ASI binary hashes when available. Task hashing excludes the
 machine-specific `source_file` field. Config hashing covers the complete effective
 config, so changes to timing, proxy, recording and local paths are detectable.
 
+New manifests also include `runtime_source_sha256` for the Python runtime,
+reader and native source files, so an adapter/prompt revision in a dirty checkout
+can be distinguished. Bounded movement records its action interface and executor
+version separately from `controller_version=null`.
+
 A missing Git checkout or unavailable binary is represented by null metadata;
 it does not pretend to be a clean, pinned environment. A dirty checkout needs
 its source snapshot to reproduce the run. Configuration and task snapshots are
@@ -77,11 +84,24 @@ their original form and identify them as legacy when analyzing them.
 
 ## Decision traces
 
+Current [agent-action](agent-actions.md) traces distinguish `agent_action`
+authorizations from `authorized_command_lease` writes. Every lease has a parent
+command ID, native request ID and authorization end; it cannot extend that end
+or change the authorized endpoint. `applied_actions` counts agent commands and
+`native_input_leases` counts writes. Shared navigation ticks remain zero.
+The following target-selection/controller fields describe historical modes.
+
 `actions.jsonl` separates model target selections from navigation-controller
 ticks. Entries include timing, selection/action, acceptance/drop reason, request
 ID, confidence/distribution and actual model when available. Native control
 acknowledgement is checked by the runner. A model response is not evidence that
 the game applied the requested action.
+
+Bounded movement entries use `source=agent_action` and include the selected
+parameters, actual leased `duration_ms` and execution `goal`. The goal is a
+mechanical projection of the selected direction, not a host-selected waypoint.
+There are no shared navigation ticks in this mode. Optional confidence and
+probabilities may be null for adapters whose providers do not supply them.
 
 The independent recorder writes a constant-frame-rate file. Repeated frames can
 occur when no fresh game frame is presented or foreground is temporarily lost;
@@ -91,12 +111,13 @@ time and model decision rate separate.
 
 ## Comparing models
 
-The planned `kill_npc` and `earn_money` tasks use fixed 120-second windows and
+The `kill_npc` and `earn_money` tasks use fixed 120-second windows and
 numeric scores: distinct attributable NPC kills and ending cash minus starting
 cash, respectively. Compare score distributions across completed windows and
-report incomplete attempts separately. Their deadline is planned normal
-completion, with no early success threshold. The current result schema and
-runner do not implement these scores; see the [planned task contracts](task-pack.md).
+report incomplete attempts separately. Their deadline is normal completion,
+with no early success threshold. `score`, `score_unit` and `score_complete`
+accompany start/end cash, scored event evidence and window tick bounds. Only
+`completed` windows have `score_complete=true`; see [task contracts](task-pack.md).
 
 For a comparison, specify the task version/hash, game/bridge versions, source
 revision, scenario preparation, observation/action interface, model versions,

@@ -1,12 +1,31 @@
 {
   "id": "walk_to_waypoint",
-  "version": 1,
+  "version": 3,
   "title": "Walk to a waypoint",
-  "instruction": "Reach the configured waypoint on foot and stay inside its radius for one second.",
+  "instruction": "Reach the configured waypoint on foot and stay inside its radius for one second. You choose every movement and when to wait.",
   "timeout_seconds": 120,
-  "setup": "Start on foot near the waypoint in Los Santos, or edit its coordinates for your save.",
-  "preconditions": {"on_foot": true, "outside_goal": true},
-  "success": {"type": "reach_waypoint", "position": {"x": 2290, "y": -1260, "z": 24}, "radius_m": 4, "vertical_tolerance_m": 5, "hold_seconds": 1},
+  "setup": "Start on foot outdoors outside the waypoint radius. Fresh New Game starts in the opening Los Santos alley; no walking route is supplied.",
+  "action_interface": "agent_actions_v1",
+  "preconditions": {
+    "on_foot": true,
+    "outside_goal": true
+  },
+  "success": {
+    "type": "reach_waypoint",
+    "position": {
+      "x": 2290,
+      "y": -1260,
+      "z": 24
+    },
+    "radius_m": 4,
+    "vertical_tolerance_m": 5,
+    "hold_seconds": 1
+  },
   "fail_on_death": true,
-  "allowed_actions": ["idle", "forward", "backward", "left", "right", "forward_left", "forward_right", "sprint", "jump"]
+  "allowed_actions": [
+    "idle",
+    "world_walk",
+    "world_run",
+    "jump"
+  ]
 }

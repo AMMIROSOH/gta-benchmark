@@ -49,13 +49,27 @@
     "policy_mode": {
       "enum": [
         "primitive_actions",
-        "target_selection_with_road_controller"
+        "bounded_movement",
+        "target_selection_with_road_controller",
+        "agent_actions"
       ]
+    },
+    "action_interface": {
+      "type": "string"
+    },
+    "executor_version": {
+      "type": "string"
+    },
+    "invalid_commands_dropped": {
+      "type": "integer",
+      "minimum": 0
     },
     "status": {
       "enum": [
         "success",
-        "failed"
+        "failed",
+        "completed",
+        "incomplete"
       ]
     },
     "reason": {
@@ -64,7 +78,9 @@
     "task_status": {
       "enum": [
         "success",
-        "failed"
+        "failed",
+        "completed",
+        "incomplete"
       ]
     },
     "task_reason": {
@@ -116,7 +132,45 @@
     },
     "post_success_recording": {
       "type": "object"
+    },
+    "score": {
+      "type": "integer"
+    },
+    "score_complete": {
+      "type": "boolean"
+    },
+    "score_unit": {
+      "enum": [
+        "kills",
+        "game_dollars"
+      ]
     }
   },
-  "additionalProperties": true
+  "additionalProperties": true,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "task_status": {
+            "const": "completed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "score",
+          "score_unit",
+          "score_complete"
+        ],
+        "properties": {
+          "score_complete": {
+            "const": true
+          },
+          "elapsed_seconds": {
+            "const": 120
+          }
+        }
+      }
+    }
+  ]
 }

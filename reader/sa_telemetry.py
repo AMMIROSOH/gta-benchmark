@@ -130,6 +130,7 @@ def state():
             value.game_version, str(value.game_version)),
         "plugin_sdk_version": value.sdk_version, "schema": value.schema,
         "sample_age_ms": age, "sample_count": value.sample_count,
+        "sampled_at_ms": value.sampled_at_ms,
         "sampling_errors": value.error_count, "game_time_ms": value.game_time_ms,
         "player": None, "vehicle": None,
         "clock": {"hour": value.clock_hour, "minute": value.clock_minute,

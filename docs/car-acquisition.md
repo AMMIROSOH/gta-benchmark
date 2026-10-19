@@ -1,5 +1,10 @@
 # State-based car acquisition
 
+**Historical assisted baseline (task v3).** Current steal-car v5 uses
+[agent-owned actions](agent-actions.md): the agent chooses each movement,
+entry attempt and recovery. The route/entry controller described below is
+retained only for older task definitions and assisted-baseline comparisons.
+
 `steal_car` uses a hybrid policy introduced in version 2. Jev selects a specific automobile
 from typed options. The local controller executes its route and interaction at
 10 Hz using fresh structured game data. This division is recorded as

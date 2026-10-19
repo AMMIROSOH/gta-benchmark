@@ -10,7 +10,7 @@ flowchart LR
     G[GTA + native ASI] -->|player, vehicles, roads, doors| S[GameClient]
     S --> R[Task runner and evaluator]
     R -->|structured context| A[Model adapter / decision worker]
-    A -->|bounded decision| C[Primitive input or shared car controller]
+    A -->|explicit action and finite duration| C[Interruptible pad executor]
     C --> B[ControlBridge lease]
     B -->|normal pad input| G
     R --> O[Results, manifest and traces]
@@ -30,7 +30,9 @@ region and encodes it on a separate thread. Model requests carry game-state JSON
 | `tasks.py` | Task contracts, precondition checks and deterministic evaluators |
 | `agents/` | Provider authentication, prompt/choice construction, response validation |
 | `runner.py` | Episode clock, worker scheduling, decisions, controls, verdicts and cleanup |
-| `navigation.py` | Shared automobile filtering, route planning and driver-door interaction |
+| `commands.py`, `movement.py` | Task-independent finite command validation and pad execution |
+| `scoring.py` | Fixed 120-second kill and net cash accounting |
+| `navigation.py` | Historical assisted car-controller compatibility |
 | `game.py`, `navigation_state.py` | Fixed-width shared-memory reads and expiring input writes |
 | `lifecycle.py` | Host-only install/launch/New Game preparation and starting-state checks |
 | `recording.py`, `windows.py` | Game-window capture, independent CFR encoding and finalization |
@@ -71,10 +73,23 @@ Scheduling rates are targets. Actual observed decision/control rates are logged.
 A model worker cannot apply controls itself. A response that arrives too late or
 after the task ends cannot extend the task or mutate its verdict.
 
-## Two evaluation modes
+## Evaluation modes
+
+The current pack uses `agent_actions`: each adapter receives shared structured
+geometry/actor observations and chooses each action, direction and duration.
+The executor keeps only that frozen command alive until its authorization ends,
+using short native leases while the next request runs. It makes no route, target,
+interception, entry or recovery decisions. See [agent actions](agent-actions.md).
+The following modes remain for historical definitions and comparisons.
 
 `primitive_actions` asks the model for one currently allowed short action. The
 runner validates its age and action set, then leases that pad input.
+
+`bounded_movement` gives every adapter the same projected geometry observations.
+The agent chooses each world direction, movement pace, duration, jump or wait.
+Local code translates a command into one expiring pad lease; it does not plan a
+route, avoid an obstacle or renew an input. This mode is used by waypoint task
+version 2. See [waypoint navigation](waypoint-navigation.md).
 
 `target_selection_with_road_controller` asks the model to commit to a reachable
 automobile. A shared controller follows native road/pedestrian links, handles
@@ -85,9 +100,9 @@ manifest. See [car acquisition](car-acquisition.md).
 
 ## Native boundary
 
-The x86 ASI and Python can use different pointer widths. Six named mappings use
+The x86 ASI and Python can use different pointer widths. Seven named mappings use
 fixed-width fields, 4-byte packing and sequence counters. Game pointers never
-cross the boundary. The normal action channel accepts codes 0–20 with a live
+cross the boundary. The normal action channel accepts codes 0–29 with a live
 owner and a lease no longer than 750 ms. World-coordinate goals are converted
 to pad movement using current camera orientation every frame.
 

@@ -7,9 +7,12 @@ import re
 from pathlib import Path
 
 from .actions import ACTIONS
+from .movement import INTERFACE, SUPPORTED_ACTIONS, uses_bounded_movement
+from .commands import INTERFACE as AGENT_INTERFACE, uses_agent_actions
+from .scoring import KINDS as SCORE_KINDS, WindowScore, fixed_window
 
 ROOT = Path(__file__).resolve().parents[1]
-KINDS = {"enter_car_as_driver", "reach_waypoint", "drive_distance", "park_and_exit", "wanted_zero"}
+KINDS = {"enter_car_as_driver", "reach_waypoint", "drive_distance", "park_and_exit", "wanted_zero"} | SCORE_KINDS
 
 
 def validate_task(task, source="task"):
@@ -25,7 +28,8 @@ def validate_task(task, source="task"):
     if not isinstance(task, dict):
         reject("task must be an object")
     fields = {"$schema", "id", "version", "title", "instruction", "setup", "timeout_seconds",
-              "preconditions", "success", "fail_on_death", "allowed_actions", "tags", "source_file"}
+              "preconditions", "success", "fail_on_death", "allowed_actions", "tags", "source_file",
+              "action_interface"}
     if set(task)-fields:
         reject("unknown fields: " + ", ".join(sorted(set(task)-fields)))
     identifier = task.get("id")
@@ -45,6 +49,10 @@ def validate_task(task, source="task"):
         reject("allowed_actions must list known action names")
     if "idle" not in actions or len(actions) != len(set(actions)):
         reject("allowed_actions must include idle and contain no duplicates")
+    if "action_interface" in task and task["action_interface"] not in {INTERFACE, AGENT_INTERFACE}:
+        reject("unknown action_interface")
+    if uses_bounded_movement(task) and set(actions) - SUPPORTED_ACTIONS:
+        reject("bounded movement only supports world movement, idle and jump")
     required = task.get("preconditions")
     if not isinstance(required, dict):
         reject("preconditions must be an object")
@@ -71,6 +79,7 @@ def validate_task(task, source="task"):
         "drive_distance": {"distance_m", "max_plausible_speed_mps"},
         "park_and_exit": {"stop_speed_mps", "stop_hold_seconds", "exit_hold_seconds", "near_car_radius_m"},
         "wanted_zero": {"hold_seconds"},
+        "npc_kills": set(), "net_money": set(),
     }[kind]
     if set(goal) != {"type"} | goal_fields:
         reject(f"{kind} requires exactly: " + ", ".join(sorted(goal_fields)))
@@ -88,8 +97,11 @@ def validate_task(task, source="task"):
         reject("outside_goal is only supported by reach_waypoint")
     if kind == "enter_car_as_driver" and "enter_exit" not in actions:
         reject("car acquisition requires enter_exit")
-    if kind != "enter_car_as_driver" and any(action.startswith("world_") for action in actions):
-        reject("world-coordinate actions currently require the car acquisition controller")
+    if fixed_window(task) and (task["timeout_seconds"] != 120 or not task["fail_on_death"] or not uses_agent_actions(task)):
+        reject("fixed-window scores require 120 seconds, fail_on_death and agent_actions_v1")
+    if kind != "enter_car_as_driver" and not uses_bounded_movement(task) and not uses_agent_actions(task) and any(
+            action.startswith("world_") for action in actions):
+        reject("world-coordinate actions require a declared bounded movement interface or car controller")
     tags = task.get("tags", [])
     if (not isinstance(tags, list) or any(not isinstance(tag, str) or not tag.strip() for tag in tags)
             or len(tags) != len(set(tags))):
@@ -99,7 +111,7 @@ def validate_task(task, source="task"):
 
 def load_task(identifier):
     explicit = Path(identifier)
-    candidates = [explicit] if explicit.is_file() else list((ROOT / "tasks").glob("*.json"))
+    candidates = [explicit] if explicit.is_file() else list((ROOT / "tasks").glob("*.json")) + list((ROOT / "tasks/legacy").glob("*.json"))
     for file in candidates:
         value = json.loads(file.read_text(encoding="utf-8"))
         validate_task(value, str(file))
@@ -124,6 +136,10 @@ def preconditions(task, state):
     if not player or player["health"] <= 0:
         return ["Load a save with a living player"]
     required = task["preconditions"]
+    if fixed_window(task):
+        actors = state.get("actors") or {}
+        if not actors.get("kill_events_ready") or not actors.get("combat_ready"):
+            failures.append("Install the current ASI with actor telemetry, combat controls and verified kill events")
     if required.get("on_foot") and player["in_vehicle"]:
         failures.append("Start on foot")
     if required.get("driving_automobile") and not driving_car(state):
@@ -159,6 +175,7 @@ class TaskEvaluator:
         self.start_vehicle = (initial.get("vehicle") or {}).get("reference")
         self.last_counter = None
         self.last_verdict = Verdict()
+        self.window_score = WindowScore(task, initial) if fixed_window(task) else None
 
     def suspend(self):
         self.holds.clear()
@@ -175,6 +192,14 @@ class TaskEvaluator:
             return self.last_verdict
         self.last_counter = state["sample_count"]
         player, vehicle = state["player"], state.get("vehicle")
+        if self.window_score:
+            failure = self.window_score.update(state)
+            if self.task.get("fail_on_death") and (player["health"] <= 0 or state["world"]["player_state"] == 1):
+                failure = failure or "player_died"
+            if state["world"]["player_state"] == 2:
+                failure = failure or "player_arrested"
+            self.last_verdict = Verdict(failure=failure, progress=self.window_score.report())
+            return self.last_verdict
         if self.task.get("fail_on_death") and (player["health"] <= 0 or state["world"]["player_state"] == 1):
             return Verdict(failure="player_died")
         if state["world"]["player_state"] == 2:

@@ -1,0 +1,13 @@
+{
+  "id": "kill_npc",
+  "version": 1,
+  "title": "Maximize NPC kills in two minutes",
+  "instruction": "Kill as many distinct NPCs as possible in 120 seconds through ordinary gameplay. Only engine-confirmed deaths attributed to you count. Choose your targets, routes, weapons, attacks and recovery. The attempt continues for the full window regardless of the count; death or arrest makes it incomplete.",
+  "setup": "Start as a living on-foot player outdoors. New Game uses the opening alley and its normal starting equipment; no weapons, NPCs or cash are granted. Record location, health, armour, inventory, cash and wanted level from initial_state.json. Compare the same preparation; nearby traffic and NPCs are stochastic.",
+  "timeout_seconds": 120,
+  "action_interface": "agent_actions_v1",
+  "preconditions": {"on_foot": true},
+  "success": {"type": "npc_kills"},
+  "fail_on_death": true,
+  "allowed_actions": ["idle", "world_walk", "world_run", "world_sprint", "jump", "enter_exit", "attack", "aim", "aim_attack", "aim_left", "aim_right", "aim_up", "aim_down", "weapon_next", "weapon_previous", "accelerate", "accelerate_left", "accelerate_right", "brake", "reverse", "steer_left", "steer_right", "handbrake"]
+}

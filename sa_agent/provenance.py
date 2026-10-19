@@ -10,6 +10,8 @@ import subprocess
 
 from . import __version__
 from .config import ROOT
+from .movement import EXECUTOR_VERSION, INTERFACE, uses_bounded_movement
+from . import commands
 
 
 def fingerprint(value):
@@ -57,10 +59,19 @@ def make_manifest(task, config, policy_mode):
             "sha256": fingerprint({k: v for k, v in task.items() if k != "source_file"})},
         "config_sha256": fingerprint(config), "policy_mode": policy_mode,
         "controller_version": "car_acquisition_v3" if policy_mode == "target_selection_with_road_controller" else None,
+        "action_interface": task.get("action_interface", policy_mode),
+        "executor_version": (commands.EXECUTOR_VERSION if commands.uses_agent_actions(task) else
+                             EXECUTOR_VERSION if uses_bounded_movement(task) else None),
+        "action_vocabulary": ("jev_held_controls_3000ms_v1" if commands.uses_agent_actions(task) and config["agent"]["name"] == "jev"
+                              else "adapter_defined_bounded_commands" if commands.uses_agent_actions(task) else None),
         "agent_adapter": config["agent"]["name"], "requested_model": config["agent"]["model"],
         "python": platform.python_version(), "platform": platform.system(),
         "machine": platform.machine(), "packages": packages,
         "game_executable_sha256": file_hash(executable),
         "installed_asi_sha256": file_hash(installed_asi),
+        "runtime_source_sha256": {path.relative_to(ROOT).as_posix(): file_hash(path)
+            for folder in ("sa_agent", "reader", "src")
+            for path in sorted((ROOT / folder).rglob("*"))
+            if path.suffix in {".py", ".cpp", ".h"}},
         "scenario_deterministic": False,
     }

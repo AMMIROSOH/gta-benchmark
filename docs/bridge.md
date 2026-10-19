@@ -15,6 +15,7 @@ control writer owns a named mutex and issues write barriers around its copy.
 | `Local\SAAgent.World.v1` | 800 | `0x57414153` | Game |
 | `Local\SAAgent.Control.v1` | 64 | `0x43414153` | One task runner |
 | `Local\SAAgent.Navigation.v1` | 10112 | `0x4E414153` | Game |
+| `Local\SAAgent.Actors.v1` | 6996 | `0x50414153` | Game |
 | `Local\SAAgent.Lifecycle.v1` | 96 | `0x4C414153` | Game |
 | `Local\SAAgent.Reset.v1` | 64 | `0x52414153` | Host runner |
 
@@ -58,7 +59,46 @@ goal Y and stop radius. The bridge converts these world goals to normal pad
 input using the camera orientation every frame. The same owner, pause, expiry
 and maximum-duration checks apply. Primitive on-foot directions remain
 camera-relative; vehicle steering is car-relative. No fire, menu, spawn or arbitrary memory-write
-action is exposed.
+action is exposed by the historical 0–20 action set.
+
+The current bridge adds codes 21 attack, 22 aim, 23 aim+attack, 24–27 aim with
+right-stick left/right/up/down, 28 next weapon and 29 previous weapon. These are
+on-foot normal pad inputs, with the same ownership, expiry and pause checks.
+Normal GTA targeting/aim assistance applies; the host does not select a victim
+or aim at coordinates. The inspected button mapping is documented in
+[gta-reversed Pad.cpp](https://github.com/gta-reversed/gta-reversed/blob/master/source/game_sa/Pad.cpp).
+
+`actors_protocol.h` and `actor_state.py` define the new 6996-byte Actors layout:
+56-byte header, 32 × 40-byte pedestrians, 32 × 28-byte pickups, 128 × 36-byte
+kill events, and 13 × 12-byte inventory slots. Header offsets: sampled tick 24,
+latest event 32, ped count 36, pickup count 40, event count 44, selected slot 48.
+Event offsets: ID 0, victim reference 4, weapon 8, attribution flags 12, Windows
+tick 16, XYZ 24. References contain pool generation; no pointers cross the ABI.
+Capabilities bit 0 confirms the death hook; bit 1 confirms combat input support;
+bit 2 confirms detailed NPC facts. Ped flags: bit 0 in vehicle, bit 1 line of
+sight from player eye to NPC torso (buildings, vehicles and objects), bits 8–15
+raw engine ped type, bits 16–23 selected weapon type. Older mappings without
+capability bit 2 produce null for the three added fields, preserving compatibility.
+Snapshots publish with telemetry at 10 Hz. All snapshots retain the most recent
+128 engine-attributed death events, including unloaded victims. An event gap
+fails scoring rather than silently losing kills. Actor and pickup lists cover
+80 m, in pool order, capped at 32 each. See [task scoring](task-pack.md).
+
+Navigation vehicle flags bits 16–23 now contain the raw engine door-lock enum;
+the remaining geometry layout is unchanged. The agent-actions projection exposes
+door coordinates, validity, busy state and that enum, while excluding the older
+controller suitability flag, interception point and route anchors.
+
+Current tasks use [agent actions](agent-actions.md). The Python authorization
+is at most 3000 ms, but native leases remain at most 300 ms (one-shot pulses
+at most 400 ms). Renewals have a fixed endpoint and authorization deadline.
+This changes no existing mapping size and does not extend the native 750-ms cap.
+
+Waypoint task version 2 reuses this unchanged ABI for agent-directed bounded
+movement. Python projects the agent's unit direction into one point 3 m away
+and sends one lease of at most 750 ms. It supplies no route or automatic renewal.
+See [waypoint navigation](waypoint-navigation.md). The separate car controller
+continues to use world goals under its existing assistance contract.
 
 The device-selection hook at `psSelectDevice` (1.0-US address `0x746190`, documented
 in gta-reversed's `source/app/platform/win/WinPs.cpp`) selects a supported 1280×720

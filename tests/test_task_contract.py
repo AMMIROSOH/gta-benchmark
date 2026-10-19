@@ -22,7 +22,9 @@ class TaskContractTests(unittest.TestCase):
     def test_sample_pack_contains_baselines_with_unique_ids(self):
         tasks = [load_task(str(path)) for path in sorted((ROOT / "tasks").glob("*.json"))]
         identifiers = {task["id"] for task in tasks}
-        self.assertTrue({"steal_car", "walk_to_waypoint", "drive_100m", "park_and_exit", "lose_wanted"} <= identifiers)
+        self.assertEqual({"steal_car", "walk_to_waypoint", "drive_100m", "kill_npc", "earn_money"}, identifiers)
+        self.assertEqual("park_and_exit", load_task("park_and_exit")["id"])
+        self.assertEqual("lose_wanted", load_task("lose_wanted")["id"])
         self.assertEqual(len(tasks), len(identifiers))
 
     def test_rejects_ambiguous_or_unusable_rules(self):
